@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const params = new URLSearchParams(window.location.search);
+const targetUrl = params.get('url');
+if (targetUrl) window.location.href = decodeURIComponent(targetUrl);
+</script>
+</body>
+</html>
