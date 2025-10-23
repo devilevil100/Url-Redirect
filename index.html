@@ -1,15 +1,41 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deep Link Test</title>
-</head>
-<body>
-  <h1>Deep Link Test</h1>
-  
-  <a href="blue_booksportsbook://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=42.535962019&selectionId=7889045">
-    Click this link
-  </a>
-</body>
-</html>
+<script>
+  // Configure your parameters
+  const marketId = '42.535962019';
+  const selectionId = '7889045';
+
+  // Deep links
+  const schemeUrl = `blue_booksportsbook://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${encodeURIComponent(marketId)}&selectionId=${encodeURIComponent(selectionId)}`;
+  const webFallbackUrl = `https://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${encodeURIComponent(marketId)}&selectionId=${encodeURIComponent(selectionId)}`;
+  const appStoreUrl = 'https://apps.apple.com/app/idYOUR_APP_ID'; // optional
+
+  function openDeepLink(auto = true) {
+    let didHide = false;
+
+    // Detect successful handoff: if the page becomes hidden, the app likely opened
+    const onVisibility = () => { if (document.hidden) didHide = true; };
+    document.addEventListener('visibilitychange', onVisibility, { once: true }); // [web:23][web:33]
+
+    // iOS Safari requires user gesture for reliability; auto works but may be blocked
+    if (auto) {
+      // Attempt navigation immediately (e.g., onload auto-redirect)
+      window.location.href = schemeUrl; // [web:8][web:23]
+    } else {
+      // Call this from a click handler for stronger success in Safari
+      window.location.href = schemeUrl; // [web:8]
+    }
+
+    // Fallback after ~1.5–2s if app didn’t open (page still visible)
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (didHide) return; // App opened; do nothing [web:23][web:33]
+      // Prefer deep web page; swap to appStoreUrl if you want store-first
+      window.location.href = webFallbackUrl; // or appStoreUrl [web:23][web:33]
+    }, 1600);
+  }
+
+  // OPTION A: auto-redirect on page load (may be blocked without gesture on iOS)
+  window.addEventListener('load', () => openDeepLink(true)); // [web:8]
+
+  // OPTION B: wire up a button to ensure a user gesture (recommended for iOS Safari)
+  // document.getElementById('open-in-app').addEventListener('click', () => openDeepLink(false)); // [web:8]
+</script>
