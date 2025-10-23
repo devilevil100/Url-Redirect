@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deep Link</title>
+</head>
 <body>
 <script>
 function deepLinkToSportsbook(marketId, selectionId) {
@@ -7,54 +12,103 @@ function deepLinkToSportsbook(marketId, selectionId) {
   
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
-  const isChrome = /Chrome/.test(navigator.userAgent);
+  const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
   
   let appOpened = false;
-  let timestamp = Date.now();
   
   // Detect if app opened by checking visibility
-  document.addEventListener('visibilitychange', function() {
+  const visibilityHandler = function() {
     if (document.hidden) {
       appOpened = true;
     }
-  });
+  };
   
   // Also check by blur event
-  window.addEventListener('blur', function() {
+  const blurHandler = function() {
     appOpened = true;
-  });
+  };
+  
+  document.addEventListener('visibilitychange', visibilityHandler);
+  window.addEventListener('blur', blurHandler);
   
   if (isAndroid && isChrome) {
     // Use intent for Android Chrome
     const packageName = 'com.sportsbook.bluebook'; // Replace with your actual package
     const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
-    const intentUrl = `intent://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}#Intent;scheme=blue_booksportsbook;end;`;
+    const intentUrl = `intent://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}#Intent;scheme=blue_booksportsbook;package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end;`;
     
     window.location.href = intentUrl;
+    
+  } else if (isIOS) {
+    // iOS-specific handling using anchor click (more reliable than iframe)
+    const a = document.createElement('a');
+    a.href = appUrl;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    
+    // Trigger click
+    a.click();
+    
+    // Cleanup anchor
+    setTimeout(function() {
+      if (document.body.contains(a)) {
+        document.body.removeChild(a);
+      }
+    }, 500);
+    
+    // Fallback to App Store if app didn't open
+    setTimeout(function() {
+      if (!appOpened) {
+        window.location.href = 'https://apps.apple.com/app/idYOUR_IOS_APP_ID'; // Replace with your App Store URL
+      }
+      
+      // Cleanup event listeners
+      document.removeEventListener('visibilitychange', visibilityHandler);
+      window.removeEventListener('blur', blurHandler);
+    }, 2500);
+    
   } else {
-    // For iOS and other browsers
+    // For other browsers (Android non-Chrome, etc.)
     const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
+    iframe.style.border = 'none';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
     iframe.src = appUrl;
     document.body.appendChild(iframe);
     
     setTimeout(function() {
-      document.body.removeChild(iframe);
-      
-      // Check if enough time has passed (app didn't open)
-      const elapsed = Date.now() - timestamp;
-      
-      if (!appOpened && elapsed < 3000) {
-        // Redirect to appropriate store
-
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
       }
+      
+      // Fallback if app didn't open
+      if (!appOpened) {
+        if (isAndroid) {
+          window.location.href = 'https://play.google.com/store/apps/details?id=com.sportsbook.bluebook';
+        } else {
+          // Desktop or other platforms
+          window.location.href = 'https://www.blue_book.com'; // Your website URL
+        }
+      }
+      
+      // Cleanup event listeners
+      document.removeEventListener('visibilitychange', visibilityHandler);
+      window.removeEventListener('blur', blurHandler);
     }, 2500);
   }
 }
 
-// Usage
-deepLinkToSportsbook('42.535962019', '7889045');
-
+// Wait for DOM to be ready before executing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() {
+    deepLinkToSportsbook('42.535962019', '7889045');
+  });
+} else {
+  // DOM is already ready
+  deepLinkToSportsbook('42.535962019', '7889045');
+}
 </script>
 </body>
 </html>
