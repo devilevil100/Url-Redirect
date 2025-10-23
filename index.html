@@ -2,25 +2,59 @@
 <html>
 <body>
 <script>
-function openApp() {
-  const marketId = '42.535962019';
-  const selectionId = '7889045';
-  const appScheme = `blue_booksportsbook://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}`;
+function deepLinkToSportsbook(marketId, selectionId) {
+  const appUrl = `blue_booksportsbook://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}`;
   
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
+  const isChrome = /Chrome/.test(navigator.userAgent);
   
-  if (isAndroid) {
-    // Android: Use intent for Chrome 25+
-    const intent = `intent://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}#Intent;scheme=blue_booksportsbook;package=YOUR_ANDROID_PACKAGE;end;`;
-    window.location.href = intent;
-  } else if (isIOS) {
-    // iOS: Try custom scheme with fallback
-    window.location.href = appScheme;
+  let appOpened = false;
+  let timestamp = Date.now();
+  
+  // Detect if app opened by checking visibility
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      appOpened = true;
+    }
+  });
+  
+  // Also check by blur event
+  window.addEventListener('blur', function() {
+    appOpened = true;
+  });
+  
+  if (isAndroid && isChrome) {
+    // Use intent for Android Chrome
+    const packageName = 'com.sportsbook.bluebook'; // Replace with your actual package
+    const playStoreUrl = `https://play.google.com/store/apps/details?id=${packageName}`;
+    const intentUrl = `intent://account.sportsbook.blue_book.com/sportsbook/addToBetslip?marketId=${marketId}&selectionId=${selectionId}#Intent;scheme=blue_booksportsbook;end;`;
     
-  } 
+    window.location.href = intentUrl;
+  } else {
+    // For iOS and other browsers
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = appUrl;
+    document.body.appendChild(iframe);
+    
+    setTimeout(function() {
+      document.body.removeChild(iframe);
+      
+      // Check if enough time has passed (app didn't open)
+      const elapsed = Date.now() - timestamp;
+      
+      if (!appOpened && elapsed < 3000) {
+        // Redirect to appropriate store
+
+      }
+    }, 2500);
+  }
 }
-openApp()
+
+// Usage
+deepLinkToSportsbook('42.535962019', '7889045');
+
 </script>
 </body>
 </html>
